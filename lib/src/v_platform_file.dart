@@ -56,6 +56,7 @@ class VPlatformFile {
   List<int>? bytes;
   String? mimeType;
   int fileSize;
+  @internal
   String? baseUrl;
   String? urlPath;
   late VSupportedFilesType mediaType;
@@ -104,6 +105,9 @@ class VPlatformFile {
 
   ///this used for cache key
   String get getUrlPath {
+    if (url == null) {
+      return name;
+    }
     final uri = Uri.parse(url!);
     return "${uri.scheme}://${uri.host}${uri.path}";
   }
@@ -115,7 +119,7 @@ class VPlatformFile {
     if (fileLocalPath != null) {
       return File(fileLocalPath!).readAsBytesSync().toList();
     }
-    throw UnimplementedError("Both bytes and filePath are null");
+    return [];
   }
 
   Uint8List get uint8List {
