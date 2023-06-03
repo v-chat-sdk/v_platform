@@ -6,3 +6,5 @@ support dart 3
 
 ## 1.0.3
 fix bug
+## 1.0.4
+fix bug
