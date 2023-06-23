@@ -8,3 +8,5 @@ support dart 3
 fix bug
 ## 1.0.4
 fix bug
+## 1.0.5
+- support for base url share

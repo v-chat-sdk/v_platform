@@ -47,10 +47,10 @@ import 'enums.dart';
 /// * [uint8List]: To get the Uint8List of the file bytes
 /// * [toMap]: To get the map representation of the file
 /// * [toString]: To get the string representation of the file
+
 class VPlatformFile {
   String name;
-  @internal
-  String? userUrl;
+
   String? assetsPath;
   String? fileLocalPath;
   List<int>? bytes;
@@ -66,7 +66,6 @@ class VPlatformFile {
 
   VPlatformFile._({
     required this.name,
-    this.userUrl,
     this.fileLocalPath,
     this.bytes,
     this.baseUrl,
@@ -81,8 +80,9 @@ class VPlatformFile {
   }
 
   String? get url {
-    if (userUrl == null) return null;
-    return baseUrl != null ? baseUrl! + userUrl! : userUrl;
+    if (baseUrl == null) return null;
+    if (VPlatformFileUtils.baseMediaUrl == null) return baseUrl;
+    return VPlatformFileUtils.baseMediaUrl! + baseUrl!;
   }
 
   String? get getMimeType => mime(name);
@@ -145,7 +145,6 @@ class VPlatformFile {
     required String url,
     this.baseUrl,
   }) : name = basename(url) {
-    userUrl = url;
     _initialize();
   }
 
@@ -159,7 +158,7 @@ class VPlatformFile {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
-      'url': userUrl,
+      'url': baseUrl,
       'filePath': fileLocalPath,
       'assetsPath': assetsPath,
       'bytes': bytes,
@@ -202,7 +201,6 @@ class VPlatformFile {
 
     return VPlatformFile._(
       name: map['name'],
-      userUrl: userUrl,
       fileLocalPath: filePath,
       baseUrl: baseUrl,
       bytes: bytes,
@@ -219,4 +217,10 @@ class VPlatformFile {
     isContentVideo = mediaType == VSupportedFilesType.video;
     isContentImage = mediaType == VSupportedFilesType.image;
   }
+}
+
+///used to set global base url to all [url]
+abstract class VPlatformFileUtils {
+  ///the shared value you can set it any where
+  static late final String? baseMediaUrl;
 }
