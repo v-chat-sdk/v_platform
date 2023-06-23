@@ -186,15 +186,12 @@ class VPlatformFile {
     }
   }
 
-  factory VPlatformFile.fromMap({
-    required Map<String, dynamic> map,
-    String? baseUrl,
-  }) {
+  factory VPlatformFile.fromMap(Map<String, dynamic> map) {
     final filePath = map['filePath'] as String?;
     final bytes = map['bytes'] as List<int>?;
-    final userUrl = map['url'] as String?;
+    final url = map['url'] as String?;
 
-    if (filePath == null && bytes == null && userUrl == null) {
+    if (filePath == null && bytes == null && url == null) {
       throw ArgumentError(
           "PlatformFileSource.fromMap: at least filePath or bytes or url must not be null. Map: $map");
     }
@@ -202,7 +199,7 @@ class VPlatformFile {
     return VPlatformFile._(
       name: map['name'],
       fileLocalPath: filePath,
-      baseUrl: baseUrl,
+      baseUrl: url,
       bytes: bytes,
       mimeType: map['mimeType'],
       fileSize: map['fileSize'] ?? 0,
