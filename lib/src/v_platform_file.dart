@@ -145,6 +145,7 @@ class VPlatformFile {
     required String url,
     this.baseUrl,
   }) : name = basename(url) {
+    baseUrl = url;
     _initialize();
   }
 
