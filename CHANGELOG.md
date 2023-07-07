@@ -12,3 +12,5 @@ fix bug
 - support for base url share
 ## 1.0.7
 - fix bug
+## 1.2.0
+- fix bug

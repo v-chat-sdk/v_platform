@@ -220,5 +220,5 @@ class VPlatformFile {
 ///used to set global base url to all [url]
 abstract class VPlatformFileUtils {
   ///the shared value you can set it any where
-  static late final String? baseMediaUrl;
+  static String? baseMediaUrl;
 }
