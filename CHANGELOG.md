@@ -14,3 +14,5 @@ fix bug
 - fix bug
 ## 1.2.0
 - fix bug
+## 1.2.1
+upgrade the http package
