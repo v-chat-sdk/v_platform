@@ -197,7 +197,7 @@ class VPlatformFile {
 
   factory VPlatformFile.fromMap(Map<String, dynamic> map) {
     final filePath = map['filePath'] as String?;
-    final bytes = map['bytes'] as List<int>?;
+    final bytes = map['bytes'] as List?;
     final url = map['url'] as String?;
 
     if (filePath == null && bytes == null && url == null) {
@@ -209,7 +209,7 @@ class VPlatformFile {
       name: map['name'],
       fileLocalPath: filePath,
       baseUrl: url,
-      bytes: bytes,
+      bytes: bytes?.map((e) => int.parse(e.toString(),radix: 10)).toList(),
       mimeType: map['mimeType'],
       fileSize: map['fileSize'] ?? 0,
       fileHash: (map['fileHash'] as String?) ??
