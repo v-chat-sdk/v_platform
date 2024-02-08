@@ -5,6 +5,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:file_sizes/file_sizes.dart';
 import 'package:meta/meta.dart';
 import 'package:mime_type/mime_type.dart';
@@ -50,7 +51,7 @@ import 'enums.dart';
 
 class VPlatformFile {
   String name;
-
+  String fileHash;
   String? assetsPath;
   String? fileLocalPath;
   List<int>? bytes;
@@ -68,6 +69,7 @@ class VPlatformFile {
     required this.name,
     this.fileLocalPath,
     this.bytes,
+    required this.fileHash,
     this.baseUrl,
     required this.fileSize,
     this.mimeType,
@@ -129,14 +131,17 @@ class VPlatformFile {
   VPlatformFile.fromBytes({
     required this.name,
     required List<int> this.bytes,
-  }) : fileSize = bytes.length {
+  })  : fileSize = bytes.length,
+        fileHash = sha256.convert(bytes).toString() {
     _initialize();
   }
 
   VPlatformFile.fromPath({
     required String this.fileLocalPath,
   })  : fileSize = File(fileLocalPath).lengthSync(),
-        name = basename(fileLocalPath) {
+        name = basename(fileLocalPath),
+        fileHash =
+            sha256.convert(File(fileLocalPath).readAsBytesSync()).toString() {
     _initialize();
   }
 
@@ -144,7 +149,8 @@ class VPlatformFile {
     this.fileSize = 0,
     required String url,
     this.baseUrl,
-  }) : name = basename(url) {
+  })  : name = basename(url),
+        fileHash = basenameWithoutExtension(url).replaceAll(" ", "-") {
     baseUrl = url;
     _initialize();
   }
@@ -152,7 +158,8 @@ class VPlatformFile {
   VPlatformFile.fromAssets({
     this.fileSize = 0,
     required String this.assetsPath,
-  }) : name = basename(assetsPath) {
+  })  : name = basename(assetsPath),
+        fileHash = basenameWithoutExtension(assetsPath).replaceAll(" ", "-") {
     _initialize();
   }
 
@@ -165,6 +172,7 @@ class VPlatformFile {
       'bytes': bytes,
       'mimeType': getMimeType,
       'fileSize': fileSize,
+      'fileHash': fileHash,
     };
   }
 
@@ -204,6 +212,8 @@ class VPlatformFile {
       bytes: bytes,
       mimeType: map['mimeType'],
       fileSize: map['fileSize'] ?? 0,
+      fileHash: (map['fileHash'] as String?) ??
+          basenameWithoutExtension(map['name'] as String).replaceAll(" ", "-"),
     );
   }
 

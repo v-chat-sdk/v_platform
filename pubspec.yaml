@@ -1,6 +1,6 @@
 name: v_platform
 description: The V_Platform Flutter package is a powerful and versatile utility designed to simplify platform-specific file operations and streamline the handling of different platforms in Flutter.
-version: 1.2.1
+version: 1.2.2
 homepage: https://github.com/v-chat-sdk/v_platform
 
 environment:
@@ -14,6 +14,7 @@ dependencies:
   mime: ^1.0.4
   path: ^1.8.3
   meta: ^1.9.1
+  crypto: ^3.0.3
   universal_html: ^2.2.1
   file_sizes: ^1.0.6
   http_parser: ^4.0.2

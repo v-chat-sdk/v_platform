@@ -16,3 +16,5 @@ fix bug
 - fix bug
 ## 1.2.1
 upgrade the http package
+## 1.2.2
+Support fileHash
