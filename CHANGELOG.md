@@ -18,3 +18,6 @@ fix bug
 upgrade the http package
 ## 1.2.2
 Support fileHash
+
+## 2.0.0
+Support Flutter V3.22
