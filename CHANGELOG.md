@@ -26,3 +26,6 @@ Support Flutter V3.22
 Update the packages 
 Support isWasm flag
 Fix get hash long time issue
+
+## 2.1.1
+Update .Readme file
