@@ -19,6 +19,7 @@ import 'enums.dart';
 /// it's a desktop platform, as well as detecting whether the code is running on mobile when using a browser. Additionally, there is a method for converting a file to a multipart HTTP request.
 abstract class VPlatforms {
   static bool isWeb = kIsWeb;
+  static bool isWasm = kIsWasm;
 
   static bool get isMobile =>
       isWeb ? false : io.Platform.isAndroid || io.Platform.isIOS;
@@ -38,6 +39,9 @@ abstract class VPlatforms {
   static VOs get currentOs {
     if (isWeb) {
       return VOs.web;
+    }
+    if (isWasm) {
+      return VOs.wasm;
     }
     if (isAndroid) {
       return VOs.android;

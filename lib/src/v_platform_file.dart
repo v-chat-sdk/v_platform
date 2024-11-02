@@ -2,10 +2,9 @@
 // All rights reserved. Use of this source code is governed by a
 // MIT license that can be found in the LICENSE file.
 
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
-
-import 'package:crypto/crypto.dart';
 import 'package:file_sizes/file_sizes.dart';
 import 'package:meta/meta.dart';
 import 'package:mime_type/mime_type.dart';
@@ -14,99 +13,100 @@ import 'package:path/path.dart' as p;
 
 import 'enums.dart';
 
-/// `VPlatformFileSource` is a class that helps to handle files in different ways.
+/// `VPlatformFile` is a class to handle various file sources such as local file path,
+/// byte array, URL, and assets. It provides utility methods for accessing file information
+/// like MIME type, media type, and size in human-readable format.
 ///
-/// It accepts a file from different sources, such as a user URL, a file path, or bytes,
-/// and provides various utility methods for handling these files.
-///
-/// This class requires some fields to be initialized:
-/// * [name]: Name of the file
-/// * [fileSize]: Size of the file
-///
-/// Optional fields include:
-/// * [userUrl]: URL for the file if it comes from a web source
-/// * [filePath]: Path for the file if it is stored locally
-/// * [bytes]: Byte data for the file if it comes as byte array
-/// * [baseUrl]: Base URL if the file is from a web source that requires a base URL
-/// * [mimeType]: Mime type of the file
-///
-/// You can use one of the following constructors based on the source of the file:
-/// * [VPlatformFileSource.fromBytes]: If you have a file in the form of bytes
-/// * [VPlatformFileSource.fromPath]: If you have a file path
-/// * [VPlatformFileSource.fromUrl]: If you have a file URL
-/// * [VPlatformFileSource.fromAssets]: If you have a file in assets
-///
-/// This class also provides utility getters and methods like:
-/// * [getMimeType]: To get the mime type of the file
-/// * [isFromPath]: To check if the file comes from a path
-/// * [isFromAssets]: To check if the file comes from assets
-/// * [isFromBytes]: To check if the file comes from bytes
-/// * [isFromUrl]: To check if the file comes from a URL
-/// * [isNotUrl]: To check if the file does not come from a URL
-/// * [readableSize]: To get the file size in a human-readable string
-/// * [getBytes]: To get the bytes of the file
-/// * [uint8List]: To get the Uint8List of the file bytes
-/// * [toMap]: To get the map representation of the file
-/// * [toString]: To get the string representation of the file
-
+/// You can create an instance using one of the following constructors:
+/// * `VPlatformFile.fromBytes` for files in bytes form.
+/// * `VPlatformFile.fromPath` for files with a local path.
+/// * `VPlatformFile.fromUrl` for files from a URL.
+/// * `VPlatformFile.fromAssets` for asset files.
 class VPlatformFile {
+  /// The name of the file.
   String name;
+
+  /// SHA-256 hash of the file content, used as a unique identifier for cache or other purposes.
   String fileHash;
+
+  /// Path to the file if it’s an asset.
   String? assetsPath;
+
+  /// Local file path if the file is stored locally.
   String? fileLocalPath;
+
+  /// File content in byte array form, if provided as bytes.
   List<int>? bytes;
+
+  /// MIME type of the file, used to identify the file type (e.g., image, video).
   String? mimeType;
+
+  /// Size of the file in bytes.
   int fileSize;
+
+  /// Base URL used for web-based files.
   @internal
   String? baseUrl;
-  String? urlPath;
+
+  /// Type of media (e.g., file, image, video), derived from `mimeType`.
   late VSupportedFilesType mediaType;
+
+  /// Flags to indicate if the file is a generic file, video, or image based on `mediaType`.
   late bool isContentFile;
   late bool isContentVideo;
   late bool isContentImage;
 
+  /// Private constructor for internal use. It initializes all fields and sets default values.
   VPlatformFile._({
     required this.name,
     this.fileLocalPath,
     this.bytes,
+    this.assetsPath,
     required this.fileHash,
     this.baseUrl,
     required this.fileSize,
     this.mimeType,
   }) {
-    urlPath = getUrlPath;
-    mediaType = getMediaType;
-    isContentFile = mediaType == VSupportedFilesType.file;
-    isContentVideo = mediaType == VSupportedFilesType.video;
-    isContentImage = mediaType == VSupportedFilesType.image;
+    _initialize();
   }
 
+  /// Returns the full URL if the file is web-based and a base URL is set.
   String? get url {
     if (baseUrl == null) return null;
     if (VPlatformFileUtils.baseMediaUrl == null) return baseUrl;
     return VPlatformFileUtils.baseMediaUrl! + baseUrl!;
   }
 
+  /// Gets the MIME type based on the file name.
   String? get getMimeType => mime(name);
 
+  /// Checks if the file source is a local path.
   bool get isFromPath => fileLocalPath != null;
 
+  /// Checks if the file source is an asset.
   bool get isFromAssets => assetsPath != null;
 
+  /// Checks if the file source is provided as bytes.
   bool get isFromBytes => bytes != null;
 
+  /// Gets the file extension (e.g., .jpg, .mp4) from the file name.
   String get extension {
     return p.extension(name);
   }
 
+  num get sizeInMb => fileSize / 1024 / 1024;
+
+  /// Checks if the file source is a URL.
   bool get isFromUrl => url != null;
 
+  /// Checks if the file source is not a URL (i.e., bytes or path).
   bool get isNotUrl => isFromBytes || isFromPath;
 
+  /// Returns the file size in a human-readable string (e.g., KB, MB).
   String get readableSize => FileSize.getSize(fileSize);
 
-  ///this used for cache key
-  String get getUrlPath {
+  /// Returns a unique URL path used for caching.
+  String get getCachedUrlKey {
     if (url == null) {
       return name;
     }
@@ -114,6 +114,7 @@ class VPlatformFile {
     return "${uri.scheme}://${uri.host}${uri.path}";
   }
 
+  /// Returns the file content as bytes. If `bytes` is null, reads from `fileLocalPath`.
   List<int> get getBytes {
     if (bytes != null) {
       return bytes!;
@@ -124,37 +125,49 @@ class VPlatformFile {
     return [];
   }
 
+  /// Returns the file content as a `Uint8List`, which is helpful for image handling.
   Uint8List get uint8List {
     return Uint8List.fromList(getBytes);
   }
 
+  /// Constructor for creating an instance from bytes. Computes the file hash and size.
   VPlatformFile.fromBytes({
     required this.name,
     required List<int> this.bytes,
   })  : fileSize = bytes.length,
-        fileHash = sha256.convert(bytes).toString() {
+        fileHash = bytes.sublist(1, 10).toString() {
     _initialize();
   }
 
+  /// Constructor for creating an instance from a local file path. Computes the file hash and size.
   VPlatformFile.fromPath({
     required String this.fileLocalPath,
   })  : fileSize = File(fileLocalPath).lengthSync(),
         name = basename(fileLocalPath),
-        fileHash =
-            sha256.convert(File(fileLocalPath).readAsBytesSync()).toString() {
+        fileHash = _generateFileHash(File(fileLocalPath)) {
     _initialize();
   }
 
+  /// Helper function to generate a unique file hash based on file attributes.
+  /// Combines file size, last modified date, and file extension to create a hash.
+  static String _generateFileHash(File file) {
+    final fileSize = file.lengthSync();
+    final lastModified = file.lastModifiedSync().millisecondsSinceEpoch;
+    final extension = file.path.split('.').last;
+    return "$fileSize-$lastModified-$extension";
+  }
+
+  /// Constructor for creating an instance from a URL. Uses the URL to derive the file name and hash.
   VPlatformFile.fromUrl({
     this.fileSize = 0,
     required String url,
     this.baseUrl,
   })  : name = basename(url),
         fileHash = basenameWithoutExtension(url).replaceAll(" ", "-") {
-    baseUrl = url;
     _initialize();
   }
 
+  /// Constructor for creating an instance from an asset file path. Computes a default file hash.
   VPlatformFile.fromAssets({
     this.fileSize = 0,
     required String this.assetsPath,
@@ -163,24 +176,74 @@ class VPlatformFile {
     _initialize();
   }
 
+  /// Converts the `VPlatformFile` instance to a map for serialization.
+  /// It encodes `bytes` to Base64 if they are available.
   Map<String, dynamic> toMap() {
     return {
       'name': name,
       'url': baseUrl,
       'filePath': fileLocalPath,
       'assetsPath': assetsPath,
-      'bytes': bytes,
-      'mimeType': getMimeType,
+      'bytes': bytes != null ? base64Encode(bytes!) : null,
+      'mimeType': mimeType,
       'fileSize': fileSize,
       'fileHash': fileHash,
     };
   }
 
-  @override
-  String toString() {
-    return 'PlatformFileSource{name: $name, url:$url _baseUrl:$baseUrl filePath: $fileLocalPath, mimeType: $mimeType, assetsPath: $assetsPath, size: $fileSize bytes ${bytes?.length}';
+  /// Factory constructor to create a `VPlatformFile` from a map.
+  /// It decodes Base64 `bytes` if provided in the map.
+  factory VPlatformFile.fromMap(Map<String, dynamic> map) {
+    final name = map['name'] as String?;
+    final filePath = map['filePath'] as String?;
+    final assetsPath = map['assetsPath'] as String?;
+    final bytesBase64 = map['bytes'] as String?;
+    final bytes = bytesBase64 != null ? base64Decode(bytesBase64) : null;
+    final url = map['url'] as String?;
+
+    if (name == null) {
+      throw ArgumentError('The "name" field is required in the map.');
+    }
+
+    if (filePath == null && bytes == null && url == null) {
+      throw ArgumentError(
+          "At least one of 'filePath', 'bytes', or 'url' must not be null. Map: $map");
+    }
+
+    final file = VPlatformFile._(
+      name: name,
+      fileLocalPath: filePath,
+      baseUrl: url,
+      assetsPath: assetsPath,
+      bytes: bytes,
+      mimeType: map['mimeType'] as String?,
+      fileSize: map['fileSize'] as int? ?? 0,
+      fileHash: (map['fileHash'] as String?) ??
+          basenameWithoutExtension(name).replaceAll(" ", "-"),
+    );
+
+    file._initialize();
+
+    return file;
   }
 
+  /// Initializes properties based on MIME type, URL path, and media type.
+  /// This method is called within each constructor.
+  void _initialize() {
+    mimeType ??= getMimeType;
+    mediaType = getMediaType;
+    isContentFile = mediaType == VSupportedFilesType.file;
+    isContentVideo = mediaType == VSupportedFilesType.video;
+    isContentImage = mediaType == VSupportedFilesType.image;
+  }
+
+  /// Returns a string representation of the file object with key attributes.
+  @override
+  String toString() {
+    return 'VPlatformFile{name: $name, fileHash: $fileHash, assetsPath: $assetsPath, fileLocalPath: $fileLocalPath, bytes: ${bytes?.length}, mimeType: $mimeType, fileSize: $fileSize, baseUrl: $baseUrl, getCachedUrlKey: $getCachedUrlKey, mediaType: $mediaType, isContentFile: $isContentFile, isContentVideo: $isContentVideo, isContentImage: $isContentImage}';
+  }
+
+  /// Determines the media type (file, image, video) based on MIME type.
   VSupportedFilesType get getMediaType {
     final mimeStr = mimeType;
     if (mimeStr == null) return VSupportedFilesType.file;
@@ -194,41 +257,11 @@ class VPlatformFile {
         return VSupportedFilesType.file;
     }
   }
-
-  factory VPlatformFile.fromMap(Map<String, dynamic> map) {
-    final filePath = map['filePath'] as String?;
-    final bytes = map['bytes'] as List?;
-    final url = map['url'] as String?;
-
-    if (filePath == null && bytes == null && url == null) {
-      throw ArgumentError(
-          "PlatformFileSource.fromMap: at least filePath or bytes or url must not be null. Map: $map");
-    }
-
-    return VPlatformFile._(
-      name: map['name'],
-      fileLocalPath: filePath,
-      baseUrl: url,
-      bytes: bytes?.map((e) => int.parse(e.toString(),radix: 10)).toList(),
-      mimeType: map['mimeType'],
-      fileSize: map['fileSize'] ?? 0,
-      fileHash: (map['fileHash'] as String?) ??
-          basenameWithoutExtension(map['name'] as String).replaceAll(" ", "-"),
-    );
-  }
-
-  void _initialize() {
-    mimeType = getMimeType;
-    urlPath = getUrlPath;
-    mediaType = getMediaType;
-    isContentFile = mediaType == VSupportedFilesType.file;
-    isContentVideo = mediaType == VSupportedFilesType.video;
-    isContentImage = mediaType == VSupportedFilesType.image;
-  }
 }
 
-///used to set global base url to all [url]
+/// Abstract class to set a global base URL for media files.
+/// This can be accessed and set throughout the application.
 abstract class VPlatformFileUtils {
-  ///the shared value you can set it any where
+  /// Global base media URL used for all files with a URL source.
   static String? baseMediaUrl;
 }

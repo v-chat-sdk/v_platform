@@ -4,4 +4,4 @@ enum VSupportedFilesType {
   video,
 }
 
-enum VOs { ios, android, macOs, windows, web, linux, fuchsia }
+enum VOs { ios, android, macOs, windows, web, linux, fuchsia, wasm }
