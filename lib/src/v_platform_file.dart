@@ -6,7 +6,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:file_sizes/file_sizes.dart';
-import 'package:meta/meta.dart';
 import 'package:mime_type/mime_type.dart';
 import 'package:path/path.dart';
 import 'package:path/path.dart' as p;
@@ -41,12 +40,11 @@ class VPlatformFile {
   /// MIME type of the file, used to identify the file type (e.g., image, video).
   String? mimeType;
 
+  /// URL path of the file if it’s web-based.
+  String? networkUrl;
+
   /// Size of the file in bytes.
   int fileSize;
-
-  /// Base URL used for web-based files.
-  @internal
-  String? baseUrl;
 
   /// Type of media (e.g., file, image, video), derived from `mimeType`.
   late VSupportedFilesType mediaType;
@@ -63,7 +61,7 @@ class VPlatformFile {
     this.bytes,
     this.assetsPath,
     required this.fileHash,
-    this.baseUrl,
+    this.networkUrl,
     required this.fileSize,
     this.mimeType,
   }) {
@@ -71,10 +69,10 @@ class VPlatformFile {
   }
 
   /// Returns the full URL if the file is web-based and a base URL is set.
-  String? get url {
-    if (baseUrl == null) return null;
-    if (VPlatformFileUtils.baseMediaUrl == null) return baseUrl;
-    return VPlatformFileUtils.baseMediaUrl! + baseUrl!;
+  String? get fullNetworkUrl {
+    if (networkUrl == null) return null;
+    if (VPlatformFileUtils.baseMediaUrl == null) return networkUrl;
+    return VPlatformFileUtils.baseMediaUrl! + networkUrl!;
   }
 
   /// Gets the MIME type based on the file name.
@@ -97,7 +95,7 @@ class VPlatformFile {
   num get sizeInMb => fileSize / 1024 / 1024;
 
   /// Checks if the file source is a URL.
-  bool get isFromUrl => url != null;
+  bool get isFromUrl => networkUrl != null;
 
   /// Checks if the file source is not a URL (i.e., bytes or path).
   bool get isNotUrl => isFromBytes || isFromPath;
@@ -107,10 +105,10 @@ class VPlatformFile {
 
   /// Returns a unique URL path used for caching.
   String get getCachedUrlKey {
-    if (url == null) {
+    if (networkUrl == null) {
       return name;
     }
-    final uri = Uri.parse(url!);
+    final uri = Uri.parse(networkUrl!);
     return "${uri.scheme}://${uri.host}${uri.path}";
   }
 
@@ -160,10 +158,9 @@ class VPlatformFile {
   /// Constructor for creating an instance from a URL. Uses the URL to derive the file name and hash.
   VPlatformFile.fromUrl({
     this.fileSize = 0,
-    required String url,
-    this.baseUrl,
-  })  : name = basename(url),
-        fileHash = basenameWithoutExtension(url).replaceAll(" ", "-") {
+    required this.networkUrl,
+  })  : name = basename(networkUrl!),
+        fileHash = basenameWithoutExtension(networkUrl).replaceAll(" ", "-") {
     _initialize();
   }
 
@@ -181,7 +178,7 @@ class VPlatformFile {
   Map<String, dynamic> toMap() {
     return {
       'name': name,
-      'url': baseUrl,
+      'networkUrl': networkUrl,
       'filePath': fileLocalPath,
       'assetsPath': assetsPath,
       'bytes': bytes != null ? base64Encode(bytes!) : null,
@@ -199,21 +196,21 @@ class VPlatformFile {
     final assetsPath = map['assetsPath'] as String?;
     final bytesBase64 = map['bytes'] as String?;
     final bytes = bytesBase64 != null ? base64Decode(bytesBase64) : null;
-    final url = map['url'] as String?;
+    final networkUrl = map['networkUrl'] as String?;
 
     if (name == null) {
       throw ArgumentError('The "name" field is required in the map.');
     }
 
-    if (filePath == null && bytes == null && url == null) {
+    if (filePath == null && bytes == null && networkUrl == null) {
       throw ArgumentError(
-          "At least one of 'filePath', 'bytes', or 'url' must not be null. Map: $map");
+          "At least one of 'filePath', 'bytes', or 'networkUrl' must not be null. Map: $map");
     }
 
     final file = VPlatformFile._(
       name: name,
       fileLocalPath: filePath,
-      baseUrl: url,
+      networkUrl: networkUrl,
       assetsPath: assetsPath,
       bytes: bytes,
       mimeType: map['mimeType'] as String?,
@@ -240,7 +237,7 @@ class VPlatformFile {
   /// Returns a string representation of the file object with key attributes.
   @override
   String toString() {
-    return 'VPlatformFile{name: $name, fileHash: $fileHash, assetsPath: $assetsPath, fileLocalPath: $fileLocalPath, bytes: ${bytes?.length}, mimeType: $mimeType, fileSize: $fileSize, baseUrl: $baseUrl, getCachedUrlKey: $getCachedUrlKey, mediaType: $mediaType, isContentFile: $isContentFile, isContentVideo: $isContentVideo, isContentImage: $isContentImage}';
+    return 'VPlatformFile{name: $name, fileHash: $fileHash, assetsPath: $assetsPath, fileLocalPath: $fileLocalPath, bytes: ${bytes?.length}, mimeType: $mimeType, fileSize: $fileSize, networkUrl: $networkUrl, fullNetworkUrl: $fullNetworkUrl, getCachedUrlKey: $getCachedUrlKey, mediaType: $mediaType, isContentFile: $isContentFile, isContentVideo: $isContentVideo, isContentImage: $isContentImage}';
   }
 
   /// Determines the media type (file, image, video) based on MIME type.

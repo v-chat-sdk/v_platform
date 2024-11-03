@@ -53,9 +53,9 @@ print(file.fileSize); // Output: size in bytes
 Create a file instance from a URL. The file name and hash are derived from the URL.
 
 ```dart
-final file = VPlatformFile.fromUrl(url: 'https://example.com/file.jpg');
+final file = VPlatformFile.fromUrl(networkUrl: 'https://example.com/file.jpg');
 print(file.name); // Output: file.jpg
-print(file.url);  // Output: Full URL
+print(file.networkUrl);  // Output: Full URL
 ```
 
 #### From Byte Array

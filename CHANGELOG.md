@@ -29,3 +29,7 @@ Fix get hash long time issue
 
 ## 2.1.1
 Update .Readme file
+
+## 2.1.2
+Fix set file from url issue
+Remove meta package
