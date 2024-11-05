@@ -196,7 +196,8 @@ class VPlatformFile {
     final assetsPath = map['assetsPath'] as String?;
     final bytesBase64 = map['bytes'] as String?;
     final bytes = bytesBase64 != null ? base64Decode(bytesBase64) : null;
-    final networkUrl = map['networkUrl'] as String?;
+    final networkUrl =
+        (map['networkUrl'] as String?) ?? (map['url'] as String?);
 
     if (name == null) {
       throw ArgumentError('The "name" field is required in the map.');

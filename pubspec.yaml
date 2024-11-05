@@ -1,6 +1,6 @@
 name: v_platform
 description: VPlatformFile is a Dart package that provides easy handling of files from paths, URLs, assets, and bytes, with utilities for metadata, MIME type, and serialization support.
-version: 2.1.2
+version: 2.1.3
 homepage: https://github.com/v-chat-sdk/v_platform
 
 environment:
