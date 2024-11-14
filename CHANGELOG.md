@@ -35,4 +35,6 @@ Fix set file from url issue
 Remove meta package
 ## 2.1.3
 - Fix set file from url issue
-- 
+ 
+## 2.1.4
+- Fix crypto issues with from bytes

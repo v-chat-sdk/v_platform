@@ -9,7 +9,7 @@ import 'package:file_sizes/file_sizes.dart';
 import 'package:mime_type/mime_type.dart';
 import 'package:path/path.dart';
 import 'package:path/path.dart' as p;
-
+import 'package:crypto/crypto.dart';
 import 'enums.dart';
 
 /// `VPlatformFile` is a class to handle various file sources such as local file path,
@@ -133,7 +133,7 @@ class VPlatformFile {
     required this.name,
     required List<int> this.bytes,
   })  : fileSize = bytes.length,
-        fileHash = bytes.sublist(1, 10).toString() {
+        fileHash =  sha256.convert(bytes).toString() {
     _initialize();
   }
 
