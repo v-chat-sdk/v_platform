@@ -5,11 +5,13 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
+import 'package:crypto/crypto.dart';
 import 'package:file_sizes/file_sizes.dart';
 import 'package:mime_type/mime_type.dart';
-import 'package:path/path.dart';
 import 'package:path/path.dart' as p;
-import 'package:crypto/crypto.dart';
+import 'package:path/path.dart';
+
 import 'enums.dart';
 
 /// `VPlatformFile` is a class to handle various file sources such as local file path,
@@ -71,6 +73,7 @@ class VPlatformFile {
   /// Returns the full URL if the file is web-based and a base URL is set.
   String? get fullNetworkUrl {
     if (networkUrl == null) return null;
+    if (networkUrl!.startsWith("http")) return networkUrl;
     if (VPlatformFileUtils.baseMediaUrl == null) return networkUrl;
     return VPlatformFileUtils.baseMediaUrl! + networkUrl!;
   }
@@ -109,7 +112,7 @@ class VPlatformFile {
       return name;
     }
     final uri = Uri.parse(networkUrl!);
-    return "${uri.scheme}://${uri.host}${uri.path}";
+    return "${uri.scheme}://${uri.host}${uri.path}".hashCode.toString();
   }
 
   /// Returns the file content as bytes. If `bytes` is null, reads from `fileLocalPath`.
@@ -133,7 +136,7 @@ class VPlatformFile {
     required this.name,
     required List<int> this.bytes,
   })  : fileSize = bytes.length,
-        fileHash =  sha256.convert(bytes).toString() {
+        fileHash = sha256.convert(bytes).toString() {
     _initialize();
   }
 
