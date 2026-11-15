@@ -2,135 +2,120 @@
 // All rights reserved. Use of this source code is governed by a
 // MIT license that can be found in the LICENSE file.
 
-import 'dart:io' as io;
-
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
-import 'package:universal_html/html.dart';
-import 'package:v_platform/src/v_platform_file.dart';
 
 import 'enums.dart';
+import 'v_platform_file.dart';
 
-///This is a class named VPlatforms that contains static properties and methods for detecting
-/// the current platform the code is running on. It includes methods for returning a boolean
-/// value for whether the current platform is web, mobile, Android, iOS, Mac OS,
-/// and other operating systems. There are also methods for getting the current platform's name and whether
-/// it's a desktop platform, as well as detecting whether the code is running on mobile when using a browser. Additionally, there is a method for converting a file to a multipart HTTP request.
+/// Cross-platform operating-system checks and multipart upload helpers.
 abstract class VPlatforms {
   static bool isWeb = kIsWeb;
   static bool isWasm = kIsWasm;
 
-  static bool get isMobile =>
-      isWeb ? false : io.Platform.isAndroid || io.Platform.isIOS;
+  static bool get isMobile => !isWeb && (isAndroid || isIOS);
 
-  static bool get isAndroid => isWeb ? false : io.Platform.isAndroid;
+  static bool get isAndroid =>
+      !isWeb && defaultTargetPlatform == TargetPlatform.android;
 
-  static bool get isIOS => isWeb ? false : io.Platform.isIOS;
+  static bool get isIOS =>
+      !isWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
-  static bool get isMacOs => isWeb ? false : io.Platform.isMacOS;
+  static bool get isMacOs =>
+      !isWeb && defaultTargetPlatform == TargetPlatform.macOS;
 
-  static bool get isDarwin => isWeb ? false : isMacOs || isIOS;
+  static bool get isDarwin => !isWeb && (isMacOs || isIOS);
 
   static String get currentPlatform {
     return currentOs.name;
   }
 
   static VOs get currentOs {
-    if (isWeb) {
-      return VOs.web;
-    }
     if (isWasm) {
       return VOs.wasm;
     }
-    if (isAndroid) {
-      return VOs.android;
+    if (isWeb) {
+      return VOs.web;
     }
-    if (isIOS) {
-      return VOs.ios;
-    }
-    if (isLinux) {
-      return VOs.linux;
-    }
-    if (isWindows) {
-      return VOs.windows;
-    }
-    if (isMacOs) {
-      return VOs.macOs;
-    }
-    return VOs.fuchsia;
+    return _osForTargetPlatform(defaultTargetPlatform);
   }
 
+  /// Returns the browser host OS when running on web.
   static VOs get osInWeb {
     if (!isWeb) {
       return currentOs;
     }
-    final userAgent = window.navigator.userAgent.toString().toLowerCase();
-    if (_isIosInWeb) {
-      return VOs.ios;
-    }
-    if (userAgent.contains("android")) {
-      return VOs.android;
-    }
-    if (userAgent.contains("windows")) {
-      return VOs.windows;
-    }
-    if (userAgent.contains("macintosh")) {
-      return VOs.macOs;
-    }
-    return VOs.linux;
+    return _osForTargetPlatform(defaultTargetPlatform);
   }
 
-  static bool get isWindows => isWeb ? false : io.Platform.isWindows;
+  static bool get isWindows =>
+      !isWeb && defaultTargetPlatform == TargetPlatform.windows;
 
-  static bool get isDeskTop => isWindows || isLinux || isMacOs;
+  /// Whether the current native target is a desktop operating system.
+  static bool get isDesktop => isWindows || isLinux || isMacOs;
 
-  static bool get isLinux => isWeb ? false : io.Platform.isLinux;
+  /// Deprecated misspelling retained for source compatibility.
+  @Deprecated('Use isDesktop instead.')
+  static bool get isDeskTop => isDesktop;
 
-  // User-agent: iphone chrome
-  // Mozilla/5.0 (----iPhone-----; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1
-  // User-agent: mac chrome
-  // Mozilla/5.0 ( ----Macintosh----; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36
-  // User-agent: android chrome
-  // Mozilla/5.0 (Linux; -----Android---- 13; sdk_gphone64_arm64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Mobile Safari/537.36
-  // User-agent: windows chrome
-  // Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36 Edg/109.0.1518.70
+  static bool get isLinux =>
+      !isWeb && defaultTargetPlatform == TargetPlatform.linux;
+
+  /// Whether a web build is running on an Android or iOS host.
   static bool get isWebRunOnMobile {
     if (!isWeb) {
       return false;
     }
-    final userAgent = window.navigator.userAgent.toString().toLowerCase();
-    return (userAgent.contains("android")) || _isIosInWeb;
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
   }
 
-  static bool get _isIosInWeb {
-    final userAgent = window.navigator.userAgent.toString().toLowerCase();
-    return userAgent.contains("iphone") || userAgent.contains("ipad");
+  static VOs _osForTargetPlatform(TargetPlatform platform) {
+    return switch (platform) {
+      TargetPlatform.android => VOs.android,
+      TargetPlatform.iOS => VOs.ios,
+      TargetPlatform.linux => VOs.linux,
+      TargetPlatform.macOS => VOs.macOs,
+      TargetPlatform.windows => VOs.windows,
+      TargetPlatform.fuchsia => VOs.fuchsia,
+    };
   }
 
+  /// Converts an in-memory or local-path source to an HTTP multipart file.
   static Future<http.MultipartFile> getMultipartFile({
     required VPlatformFile source,
-    String fieldName = "file",
+    String fieldName = 'file',
   }) async {
+    if (fieldName.trim().isEmpty) {
+      throw ArgumentError.value(fieldName, 'fieldName', 'Must not be empty.');
+    }
+
     final mimeType = source.mimeType;
     final fileLocalPath = source.fileLocalPath;
     final bytes = source.bytes;
 
     final contentType = mimeType != null ? MediaType.parse(mimeType) : null;
-    final file = bytes != null
-        ? http.MultipartFile.fromBytes(
-            fieldName,
-            bytes,
-            filename: source.name,
-            contentType: contentType,
-          )
-        : await http.MultipartFile.fromPath(
-            fieldName,
-            fileLocalPath!,
-            filename: source.name,
-            contentType: contentType,
-          );
-
-    return file;
+    if (bytes != null) {
+      return http.MultipartFile.fromBytes(
+        fieldName,
+        bytes,
+        filename: source.name,
+        contentType: contentType,
+      );
+    }
+    if (fileLocalPath != null && fileLocalPath.isNotEmpty) {
+      return http.MultipartFile.fromPath(
+        fieldName,
+        fileLocalPath,
+        filename: source.name,
+        contentType: contentType,
+      );
+    }
+    throw ArgumentError.value(
+      source,
+      'source',
+      'Multipart uploads require bytes or a local file path.',
+    );
   }
 }

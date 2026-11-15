@@ -4,29 +4,20 @@ import 'package:v_platform/v_platform.dart';
 
 class FilePickerHelper {
   static Future<List<VPlatformFile>> pickFiles() async {
-    List<VPlatformFile> pickedFilesPaths = [];
-    try {
-      FilePickerResult? result =
-          await FilePicker.platform.pickFiles(allowMultiple: true);
-      if (result != null) {
-        if (kIsWeb) {
-          // On web, use bytes since paths are not supported
+    final files = await FilePicker.pickFiles();
+    if (files.isEmpty) return const <VPlatformFile>[];
 
-          pickedFilesPaths = result.files
-              .map((file) =>
-                  VPlatformFile.fromBytes(name: file.name, bytes: file.bytes!))
-              .toList();
-        } else {
-          pickedFilesPaths = result.files
-              .map((file) =>
-                  VPlatformFile.fromPath(fileLocalPath: file.xFile.path))
-              .toList();
+    return Future.wait(
+      files.map((file) async {
+        final path = file.path;
+        if (!kIsWeb && path != null) {
+          return VPlatformFile.fromPath(fileLocalPath: path);
         }
-      }
-    } catch (e) {
-      // Handle any error that might occur during file picking
-      print('Error picking files: $e');
-    }
-    return pickedFilesPaths;
+        return VPlatformFile.fromBytes(
+          name: file.name,
+          bytes: await file.readAsBytes(),
+        );
+      }),
+    );
   }
 }
